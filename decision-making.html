@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decision Making and Path Integral Formulation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background-color: #fafaf8;
+      color: #2c2c2c;
+      min-height: 100vh;
+    }
+
+    /* --- Menu --- */
+    .menu-btn {
+      position: fixed;
+      top: 22px;
+      left: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.4rem;
+      color: #111;
+      z-index: 1001;
+      line-height: 1;
+    }
+
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: #fafaf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .menu-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .menu-overlay nav ul {
+      list-style: none;
+      text-align: center;
+    }
+
+    .menu-overlay nav ul li {
+      margin: 24px 0;
+      opacity: 0;
+      transform: translateY(-12px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .menu-overlay.open nav ul li:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0.08s; }
+    .menu-overlay.open nav ul li:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.18s; }
+
+    .menu-overlay nav ul li a {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #111;
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+
+    .menu-overlay nav ul li a:hover {
+      text-decoration: underline;
+    }
+
+    /* --- Page --- */
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 80px 24px 120px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 72px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    header h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #111;
+    }
+
+    header p.tagline {
+      margin-top: 12px;
+      font-size: 1rem;
+      color: #888;
+      font-style: italic;
+    }
+
+    .post {
+      margin-bottom: 64px;
+    }
+
+    .post h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 8px;
+    }
+
+    .post .meta {
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 20px;
+    }
+
+    .post a {
+      color: #111;
+      text-decoration: underline;
+    }
+
+    .post-image {
+      text-align: center;
+      margin: 32px 0;
+    }
+
+    .post-image img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .post p {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #444;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .page {
+        padding: 40px 16px 60px;
+      }
+
+      header {
+        margin-bottom: 40px;
+      }
+
+      header h1 {
+        font-size: 1.8rem;
+      }
+
+      .post h2 {
+        font-size: 1.3rem;
+      }
+
+      .post p {
+        font-size: 0.95rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button type="button" class="menu-btn" onclick="toggleMenu()" aria-label="Toggle menu">☰</button>
+
+  <div class="menu-overlay" id="menuOverlay">
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="decision-making.html">Decision Making</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="page">
+    <header>
+      <h1>Decision Making and Path Integral Formulation</h1>
+      <p class="tagline"></p>
+    </header>
+
+    <article class="post">
+      <h2>Decision Making</h2>
+      <p class="meta">May 29, 2026</p>
+      <p>
+        It is commonly assumed that humans are largely and naturally unpredictable. Believing so is no different from believing that man is naturally evil, selfish, good, etc.
+        If you were to observe an individual for a brief moment in time, and attempted to guess their very next move, the odds would be stacked against you.
+        Observe an individual over a longer period of time, and you will begin to see behavioural patterns emerge. Still, this is not enough to
+        argue that humans are in fact predictable. However, if you expand your experiment by observing a group of individuals who have fostered a sense of community within that group,
+        the patterns that emerge would be enough to assume that groups are, more often than not, predictable. Of course this is where you run into theories such as <a href="https://en.wikipedia.org/wiki/Game_theory" target="_blank">Game Theory</a>,
+        <a href="https://en.wikipedia.org/wiki/Rational_choice_theory" target="_blank">Rational Choice Theory</a>, <a href="https://en.wikipedia.org/wiki/Chaos_theory" target="_blank">Chaos Theory</a> and the like. All of which are no doubt important and effective ways of understanding human decision making processes. However, they are
+        insufficient in testing whether you can accurately predict an individual's next move.</p>
+        <p></p>
+
+      <h2>Path Integral Formulation</h2>
+
+      <figure class="post-image">
+        <img src="images/Feynman_paths.png" alt="Feynman path integral diagram">
+      </figure>
+
+        <p><a href="https://en.wikipedia.org/wiki/Path_integral_formulation" target="_blank">Path Integral Formulation Theory</a> is very interesting here because of it's simplicity, at least when explained by Richard Feynman himself, and
+        its ability to transcend physics and mold into other fields such as mathematics. Path Integral Formulation Theory is a theory of quantum mechanics to generalize
+        the trajectory of any quantum particle. Meaning, a quantum particle can arrive at Point B from Point A, but can arrive at Point B by taking
+        any of the infinite amount of potential paths to get there. So in essence, the framework computes the sum of all possible paths connecting one point to another. This will be the basis of the system
+        I will attempt to create later on.
+
+        <p>Arriving at a decision in and of itself appears to be a seamless and very natural process. We do not usually analyze and assess the potential decisions
+          that lie before us, at least not on a micro scale. To be clear, I do not mean the calculated decisions that are made to achieve an end goal. For example, you do not
+          think about your response to someone who says "goodmorning", yet you subconsciously make the decision to respond in the same way. This subconsciously made decision
+          is particularly interesting to me because the mind filters through (x) amount of possible options, however trivial these options are, and does so in a
+          tenth of a second. There are no doubt an infinite amount of other examples, some obvious and some not so obvious.
+        </p>
+
+        <p>
+          If we apply Path Integral Fromulation to decision making, the process of arrivng at any decision is very similar to that of a quantum particle. Point A, in this case, could be regarded
+           as the point in time in which the decision has not yet been made. Or, Point A could be another decision entirely. Of course there is
+           no guarantee this is at all the natural flow of decision making. I am only deducing from what I know to be true. That we arrive at a decision from an
+           infinite amount of possible decisions in what we can refer to as a "decision space".
+        </p>
+
+        <p>
+          Literature that explore this is widely available, many of which are in-line with my view of the nature of decision making.
+          Peter Solazzo's <a href="https://arxiv.org/abs/1811.12496" target="_blank">"A Theory of Decision Making Based on Feynman's Path Integral Formulation of Quantum Mechanics"</a>, not only explores but
+          also corrects previous presumptions about the quantum behavior of decision making made in <a href="https://arxiv.org/abs/1710.07613" target="_blank">"Quantum field inspired model of decision making: Asymptotic
+          stabilization of belief state via interaction with surrounding mental environment"</a>, by Bagarello, Basieva, and Khrennikov.
+        </p>
+
+    </article>
+  </div>
+
+  <script>
+    function toggleMenu() {
+      const overlay = document.getElementById('menuOverlay');
+      const btn = document.querySelector('.menu-btn');
+      const isOpen = overlay.classList.toggle('open');
+      btn.textContent = isOpen ? '✕' : '☰';
+    }
+  </script>
+
+</body>
+</html>
