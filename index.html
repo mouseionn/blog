@@ -17,17 +17,26 @@
       flex-direction: column;
     }
 
-    .menu-btn {
+    .topbar {
       position: fixed;
-      top: 22px;
-      left: 24px;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      z-index: 1001;
+    }
+
+    .menu-btn {
       background: none;
       border: none;
       cursor: pointer;
       font-size: 1.4rem;
       color: #fff;
-      z-index: 1001;
       line-height: 1;
+      transition: opacity 0.25s ease;
     }
 
     .menu-overlay {
@@ -63,6 +72,7 @@
     .menu-overlay.open nav ul li:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0.08s; }
     .menu-overlay.open nav ul li:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.18s; }
     .menu-overlay.open nav ul li:nth-child(3) { opacity: 1; transform: translateY(0); transition-delay: 0.28s; }
+    .menu-overlay.open nav ul li:nth-child(4) { opacity: 1; transform: translateY(0); transition-delay: 0.38s; }
 
     .menu-overlay nav ul li a {
       font-size: 1.8rem;
@@ -78,7 +88,7 @@
 
     .hero {
       text-align: center;
-      padding: 88px 24px 28px;
+      padding: 96px 24px 24px;
       flex-shrink: 0;
     }
 
@@ -99,14 +109,17 @@
 </head>
 <body>
 
-  <button type="button" class="menu-btn" onclick="toggleMenu()" aria-label="Toggle menu">☰</button>
+  <nav class="topbar" aria-label="Site navigation">
+    <button type="button" class="menu-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Toggle menu">☰</button>
+  </nav>
 
   <div class="menu-overlay" id="menuOverlay">
-    <nav>
+    <nav aria-label="Menu">
       <ul>
         <li><a href="index.html">Home</a></li>
         <li><a href="decision-making.html">Decision Making</a></li>
         <li><a href="neuroscience.html">Neuroscience</a></li>
+        <li><a href="projects.html">Projects</a></li>
       </ul>
     </nav>
   </div>
@@ -120,7 +133,7 @@
   <script>
     function toggleMenu() {
       const overlay = document.getElementById('menuOverlay');
-      const btn = document.querySelector('.menu-btn');
+      const btn = document.getElementById('menuBtn');
       const isOpen = overlay.classList.toggle('open');
       btn.textContent = isOpen ? '✕' : '☰';
     }
@@ -134,12 +147,14 @@
 
     // r values reflect relative content weight; max is 110
     const bubbles = [
-      { lines: ['Decision', 'Making'], url: 'decision-making.html', r: 85, x: 0, y: 0, vx: 0, vy: 0 },
-      { lines: ['Neuroscience'],       url: 'neuroscience.html',    r: 65, x: 0, y: 0, vx: 0, vy: 0 }
+      { lines: ['Decision', 'Making'], url: 'decision-making.html', r: 52, x: 0, y: 0, vx: 0, vy: 0 },
+      { lines: ['Neuroscience'],       url: 'neuroscience.html',    r: 44, x: 0, y: 0, vx: 0, vy: 0 },
+      { lines: ['Projects'],           url: 'projects.html',        r: 40, x: 0, y: 0, vx: 0, vy: 0 }
     ];
 
     const links = [[0, 1]]; // linked pairs keep a spring between them
 
+    let logW = 0, logH = 0;
     let initialized = false;
     let dragging = null;
     let dragOffX = 0, dragOffY = 0;
@@ -148,18 +163,24 @@
     let dragMoved = false;
 
     function initPositions() {
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
-      const gap = bubbles[0].r + bubbles[1].r - LINK_OVERLAP;
-      bubbles[0].x = cx - gap / 2;
-      bubbles[0].y = cy;
-      bubbles[1].x = cx + gap / 2;
-      bubbles[1].y = cy;
+      const cx = logW / 2;
+      const cy = logH / 2;
+      const gap01 = bubbles[0].r + bubbles[1].r - LINK_OVERLAP;
+      bubbles[0].x = cx - gap01 / 2;
+      bubbles[0].y = cy - 20;
+      bubbles[1].x = cx + gap01 / 2;
+      bubbles[1].y = cy - 20;
+      bubbles[2].x = cx + 20;
+      bubbles[2].y = cy + bubbles[0].r + bubbles[2].r - 10;
     }
 
     function resize() {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+      const dpr = window.devicePixelRatio || 1;
+      logW = canvas.offsetWidth;
+      logH = canvas.offsetHeight;
+      canvas.width = Math.round(logW * dpr);
+      canvas.height = Math.round(logH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (!initialized) {
         initPositions();
         initialized = true;
@@ -167,8 +188,8 @@
     }
 
     function update() {
-      const W = canvas.width;
-      const H = canvas.height;
+      const W = logW;
+      const H = logH;
 
       // Spring forces on linked pairs
       for (const [i, j] of links) {
@@ -252,7 +273,7 @@
     }
 
     function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, logW, logH);
       bubbles.forEach(drawBubble);
     }
 
@@ -262,8 +283,8 @@
       const rect = canvas.getBoundingClientRect();
       const src = e.touches ? e.touches[0] : e;
       return {
-        x: (src.clientX - rect.left) * (canvas.width / rect.width),
-        y: (src.clientY - rect.top)  * (canvas.height / rect.height)
+        x: src.clientX - rect.left,
+        y: src.clientY - rect.top
       };
     }
 
