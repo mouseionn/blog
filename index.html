@@ -9,7 +9,7 @@
 
     body {
       font-family: Georgia, 'Times New Roman', serif;
-      background-color: #111;
+      background: #111;
       color: #fff;
       height: 100vh;
       overflow: hidden;
@@ -19,9 +19,7 @@
 
     .topbar {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       height: 56px;
       display: flex;
       align-items: center;
@@ -52,15 +50,9 @@
       transition: opacity 0.3s ease;
     }
 
-    .menu-overlay.open {
-      opacity: 1;
-      pointer-events: all;
-    }
+    .menu-overlay.open { opacity: 1; pointer-events: all; }
 
-    .menu-overlay nav ul {
-      list-style: none;
-      text-align: center;
-    }
+    .menu-overlay nav ul { list-style: none; text-align: center; }
 
     .menu-overlay nav ul li {
       margin: 24px 0;
@@ -82,13 +74,11 @@
       letter-spacing: -0.5px;
     }
 
-    .menu-overlay nav ul li a:hover {
-      text-decoration: underline;
-    }
+    .menu-overlay nav ul li a:hover { text-decoration: underline; }
 
     .hero {
       text-align: center;
-      padding: 96px 24px 24px;
+      padding: 96px 24px 12px;
       flex-shrink: 0;
     }
 
@@ -96,7 +86,6 @@
       font-size: 2.5rem;
       font-weight: 700;
       letter-spacing: -1px;
-      color: #fff;
     }
 
     canvas {
@@ -124,11 +113,11 @@
     </nav>
   </div>
 
-  <div class="hero" id="hero">
+  <div class="hero">
     <h1>mouseionn</h1>
   </div>
 
-  <canvas id="bubbleCanvas"></canvas>
+  <canvas id="globe"></canvas>
 
   <script>
     function toggleMenu() {
@@ -138,42 +127,223 @@
       btn.textContent = isOpen ? '✕' : '☰';
     }
 
-    // ── Bubble map ──────────────────────────────────────────────
-    const canvas = document.getElementById('bubbleCanvas');
+    // ── 3D Globe ───────────────────────────────────────────────────
+    const canvas = document.getElementById('globe');
     const ctx = canvas.getContext('2d');
 
-    const DAMPING = 0.93;
-    const LINK_OVERLAP = 10; // px overlap between linked bubbles
+    let logW = 0, logH = 0, R = 0; // logical px dims and sphere radius
 
-    // r values reflect relative content weight; max is 110
-    const bubbles = [
-      { lines: ['Decision', 'Making'], url: 'decision-making.html', r: 52, x: 0, y: 0, vx: 0, vy: 0 },
-      { lines: ['Neuroscience'],       url: 'neuroscience.html',    r: 44, x: 0, y: 0, vx: 0, vy: 0 },
-      { lines: ['Projects'],           url: 'projects.html',        r: 40, x: 0, y: 0, vx: 0, vy: 0 }
+    // phi = polar angle from north pole (0=top, π=bottom)
+    // theta = azimuthal angle (0=+X, π/2=+Z front, π=-X, 3π/2=-Z back)
+    const nodes = [
+      { lines: ['Decision', 'Making'], url: 'decision-making.html',  phi: 0.85, theta: 0.3,  related: [1] },
+      { lines: ['Neuroscience'],       url: 'neuroscience.html',     phi: 0.95, theta: 1.4,  related: [0] },
+      { lines: ['Projects'],           url: 'projects.html',          phi: 1.55, theta: 3.2,  related: [3] },
+      { lines: ['Firefly'],            url: 'projects/firefly.html',  phi: 1.75, theta: 3.55, related: [2] }
     ];
 
-    const links = [[0, 1]]; // linked pairs keep a spring between them
+    // Unique edges from related lists
+    const edges = [];
+    nodes.forEach((n, i) => n.related.forEach(j => { if (j > i) edges.push([i, j]); }));
 
-    let logW = 0, logH = 0;
-    let initialized = false;
-    let dragging = null;
-    let dragOffX = 0, dragOffY = 0;
-    let prevX = 0, prevY = 0;
-    let velX = 0, velY = 0;
-    let dragMoved = false;
+    // Rotation state
+    let rotY = 0, rotX = 0.15;
+    let isDragging = false;
+    let prevMX = 0, prevMY = 0;
+    let momX = 0, momY = 0;
+    let dragStartX = 0, dragStartY = 0;
+    const AUTO = 0.0025;
+    const DECAY = 0.91;
 
-    function initPositions() {
-      const cx = logW / 2;
-      const cy = logH / 2;
-      const gap01 = bubbles[0].r + bubbles[1].r - LINK_OVERLAP;
-      bubbles[0].x = cx - gap01 / 2;
-      bubbles[0].y = cy - 20;
-      bubbles[1].x = cx + gap01 / 2;
-      bubbles[1].y = cy - 20;
-      bubbles[2].x = cx + 20;
-      bubbles[2].y = cy + bubbles[0].r + bubbles[2].r - 10;
+    // ── Geometry helpers ──
+    function cart(phi, theta) {
+      return {
+        x: Math.sin(phi) * Math.cos(theta),
+        y: Math.cos(phi),
+        z: Math.sin(phi) * Math.sin(theta)
+      };
     }
 
+    function rot(p) {
+      // Y rotation (spin)
+      const x1 = Math.cos(rotY) * p.x + Math.sin(rotY) * p.z;
+      const z1 = -Math.sin(rotY) * p.x + Math.cos(rotY) * p.z;
+      // X rotation (tilt)
+      const y2 = Math.cos(rotX) * p.y - Math.sin(rotX) * z1;
+      const z2 = Math.sin(rotX) * p.y + Math.cos(rotX) * z1;
+      return { x: x1, y: y2, z: z2 };
+    }
+
+    function proj(p) {
+      const f = R * 2.8;
+      const s = f / (f + p.z * R);
+      return { sx: logW / 2 + p.x * R * s, sy: logH / 2 + p.y * R * s, s, depth: p.z };
+    }
+
+    function getProjected() {
+      return nodes.map(n => proj(rot(cart(n.phi, n.theta))));
+    }
+
+    // ── Drawing ──
+    function drawRecBox(sx, sy, lines, fontSize, alpha) {
+      ctx.font = `${fontSize}px Georgia, serif`;
+      const lineH = fontSize * 1.35;
+      const maxW = Math.max(...lines.map(l => ctx.measureText(l).width));
+      const pad = 6;
+      const bw = maxW + pad * 2;
+      const bh = lines.length * lineH + pad * 2;
+      const bx = sx - bw / 2;
+      const by = sy - bh / 2;
+      const cl = Math.min(9, bw * 0.28); // corner line length
+
+      ctx.strokeStyle = `rgba(255,255,255,${(alpha * 0.6).toFixed(2)})`;
+      ctx.lineWidth = 1;
+
+      // Four corner brackets
+      [
+        [bx,      by,      1,  1 ],
+        [bx + bw, by,     -1,  1 ],
+        [bx,      by + bh, 1, -1 ],
+        [bx + bw, by + bh,-1, -1 ]
+      ].forEach(([x, y, dx, dy]) => {
+        ctx.beginPath();
+        ctx.moveTo(x + dx * cl, y);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x, y + dy * cl);
+        ctx.stroke();
+      });
+
+      // Text
+      ctx.fillStyle = `rgba(255,255,255,${(alpha * 0.9).toFixed(2)})`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const startY = sy - ((lines.length - 1) * lineH) / 2;
+      lines.forEach((line, i) => ctx.fillText(line, sx, startY + i * lineH));
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, logW, logH);
+
+      // Faint sphere outline
+      ctx.beginPath();
+      ctx.arc(logW / 2, logH / 2, R, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      const projected = getProjected();
+
+      // Edges
+      edges.forEach(([i, j]) => {
+        const a = projected[i], b = projected[j];
+        const alpha = Math.max(0.04, ((a.depth + b.depth) / 2 + 1) / 2 * 0.4);
+        ctx.beginPath();
+        ctx.moveTo(a.sx, a.sy);
+        ctx.lineTo(b.sx, b.sy);
+        ctx.strokeStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
+        ctx.lineWidth = 0.75;
+        ctx.stroke();
+      });
+
+      // Nodes — draw back to front so front nodes are on top
+      [...projected.keys()]
+        .sort((a, b) => projected[a].depth - projected[b].depth)
+        .forEach(i => {
+          const { sx, sy, s, depth } = projected[i];
+          const nodeAlpha = Math.max(0.08, (depth + 1) / 2 * 0.75 + 0.1);
+
+          // Node dot
+          ctx.beginPath();
+          ctx.arc(sx, sy, Math.max(2, 3 * s), 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${nodeAlpha.toFixed(2)})`;
+          ctx.fill();
+
+          // Recognition-box label (front hemisphere only, fade with depth)
+          if (depth > -0.25) {
+            const labelAlpha = Math.min(1, (depth + 0.25) / 0.75) * nodeAlpha;
+            const fontSize = Math.max(9, Math.round(11 * s));
+            const labelY = sy + Math.max(16, 24 * s);
+            drawRecBox(sx, labelY, nodes[i].lines, fontSize, labelAlpha);
+          }
+        });
+    }
+
+    // ── Animation loop ──
+    function step() {
+      if (!isDragging) {
+        rotY += AUTO + momY;
+        rotX += momX;
+        rotX = Math.max(-Math.PI * 0.42, Math.min(Math.PI * 0.42, rotX));
+        momX *= DECAY;
+        momY *= DECAY;
+      }
+      draw();
+      requestAnimationFrame(step);
+    }
+
+    // ── Input ──
+    function clientXY(e) {
+      const src = e.touches ? e.touches[0] : e;
+      return [src.clientX, src.clientY];
+    }
+
+    function releaseXY(e) {
+      if (e.changedTouches) return [e.changedTouches[0].clientX, e.changedTouches[0].clientY];
+      return [e.clientX, e.clientY];
+    }
+
+    function hitNode(mx, my) {
+      const projected = getProjected();
+      for (let i = projected.length - 1; i >= 0; i--) {
+        const { sx, sy, depth } = projected[i];
+        if (depth > -0.5 && Math.hypot(mx - sx, my - sy) < 26) return i;
+      }
+      return -1;
+    }
+
+    function onDown(e) {
+      [prevMX, prevMY] = clientXY(e);
+      [dragStartX, dragStartY] = [prevMX, prevMY];
+      isDragging = true;
+      momX = 0; momY = 0;
+    }
+
+    function onMove(e) {
+      if (!isDragging) {
+        if (e.touches) return;
+        canvas.style.cursor = hitNode(e.clientX, e.clientY) >= 0 ? 'pointer' : 'default';
+        return;
+      }
+      const [mx, my] = clientXY(e);
+      const dx = (mx - prevMX) * 0.007;
+      const dy = (my - prevMY) * 0.007;
+      rotY += dx; rotX += dy;
+      rotX = Math.max(-Math.PI * 0.42, Math.min(Math.PI * 0.42, rotX));
+      momY = dx; momX = dy;
+      prevMX = mx; prevMY = my;
+    }
+
+    function onUp(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      const [ux, uy] = releaseXY(e);
+      if (Math.hypot(ux - dragStartX, uy - dragStartY) < 6) {
+        const rect = canvas.getBoundingClientRect();
+        const i = hitNode(ux - rect.left + rect.left, uy); // canvas is full-width so no offset needed
+        if (i >= 0) window.location.href = nodes[i].url;
+      }
+    }
+
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('mouseleave', () => { isDragging = false; });
+
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); onDown(e); }, { passive: false });
+    canvas.addEventListener('touchmove',  e => { e.preventDefault(); onMove(e); }, { passive: false });
+    canvas.addEventListener('touchend',   e => { e.preventDefault(); onUp(e);   }, { passive: false });
+
+    // ── Resize ──
     function resize() {
       const dpr = window.devicePixelRatio || 1;
       logW = canvas.offsetWidth;
@@ -181,173 +351,12 @@
       canvas.width = Math.round(logW * dpr);
       canvas.height = Math.round(logH * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (!initialized) {
-        initPositions();
-        initialized = true;
-      }
+      R = Math.min(logW, logH) * 0.28;
     }
-
-    function update() {
-      const W = logW;
-      const H = logH;
-
-      // Spring forces on linked pairs
-      for (const [i, j] of links) {
-        const a = bubbles[i];
-        const b = bubbles[j];
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const dist = Math.hypot(dx, dy) || 1;
-        const rest = a.r + b.r - LINK_OVERLAP;
-        const diff = dist - rest;
-        const f = diff * 0.045;
-        const nx = dx / dist;
-        const ny = dy / dist;
-        if (dragging !== i) { a.vx += nx * f; a.vy += ny * f; }
-        if (dragging !== j) { b.vx -= nx * f; b.vy -= ny * f; }
-      }
-
-      // Repulsion for unlinked pairs
-      for (let i = 0; i < bubbles.length; i++) {
-        for (let j = i + 1; j < bubbles.length; j++) {
-          const linked = links.some(([a, b]) => (a === i && b === j) || (a === j && b === i));
-          if (linked) continue;
-          const a = bubbles[i], b = bubbles[j];
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const dist = Math.hypot(dx, dy) || 1;
-          const minD = a.r + b.r + 24;
-          if (dist < minD) {
-            const push = (minD - dist) * 0.04;
-            const nx = dx / dist;
-            const ny = dy / dist;
-            if (dragging !== i) { a.vx -= nx * push; a.vy -= ny * push; }
-            if (dragging !== j) { b.vx += nx * push; b.vy += ny * push; }
-          }
-        }
-      }
-
-      // Integrate
-      for (let i = 0; i < bubbles.length; i++) {
-        if (dragging === i) continue;
-        const b = bubbles[i];
-        // Gentle center pull
-        b.vx += (W / 2 - b.x) * 0.001;
-        b.vy += (H / 2 - b.y) * 0.001;
-        // Damp
-        b.vx *= DAMPING;
-        b.vy *= DAMPING;
-        // Move
-        b.x += b.vx;
-        b.y += b.vy;
-        // Boundary bounce
-        if (b.x < b.r)     { b.x = b.r;     b.vx =  Math.abs(b.vx) * 0.4; }
-        if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * 0.4; }
-        if (b.y < b.r)     { b.y = b.r;     b.vy =  Math.abs(b.vy) * 0.4; }
-        if (b.y > H - b.r) { b.y = H - b.r; b.vy = -Math.abs(b.vy) * 0.4; }
-      }
-    }
-
-    function drawBubble(b) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(210, 210, 210, 0.28)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      const fontSize = Math.max(11, Math.round(b.r * 0.19));
-      ctx.font = `${fontSize}px Georgia, serif`;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      const lineH = fontSize * 1.35;
-      const startY = b.y - ((b.lines.length - 1) * lineH) / 2;
-      for (let i = 0; i < b.lines.length; i++) {
-        ctx.fillText(b.lines[i], b.x, startY + i * lineH);
-      }
-      ctx.restore();
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, logW, logH);
-      bubbles.forEach(drawBubble);
-    }
-
-    function loop() { update(); draw(); requestAnimationFrame(loop); }
-
-    function getPos(e) {
-      const rect = canvas.getBoundingClientRect();
-      const src = e.touches ? e.touches[0] : e;
-      return {
-        x: src.clientX - rect.left,
-        y: src.clientY - rect.top
-      };
-    }
-
-    function hitTest(x, y) {
-      for (let i = bubbles.length - 1; i >= 0; i--) {
-        const b = bubbles[i];
-        if ((x - b.x) ** 2 + (y - b.y) ** 2 <= b.r ** 2) return i;
-      }
-      return -1;
-    }
-
-    function pointerDown(e) {
-      const p = getPos(e);
-      const i = hitTest(p.x, p.y);
-      if (i < 0) return;
-      dragging = i;
-      dragOffX = bubbles[i].x - p.x;
-      dragOffY = bubbles[i].y - p.y;
-      prevX = p.x; prevY = p.y;
-      velX = 0; velY = 0;
-      dragMoved = false;
-      canvas.style.cursor = 'grabbing';
-    }
-
-    function pointerMove(e) {
-      const p = getPos(e);
-      if (dragging === null) {
-        canvas.style.cursor = hitTest(p.x, p.y) >= 0 ? 'pointer' : 'default';
-        return;
-      }
-      velX = p.x - prevX;
-      velY = p.y - prevY;
-      prevX = p.x; prevY = p.y;
-      bubbles[dragging].x = p.x + dragOffX;
-      bubbles[dragging].y = p.y + dragOffY;
-      if (Math.abs(velX) + Math.abs(velY) > 2) dragMoved = true;
-    }
-
-    function pointerUp() {
-      if (dragging === null) return;
-      if (!dragMoved) {
-        window.location.href = bubbles[dragging].url;
-      } else {
-        bubbles[dragging].vx = velX * 0.85;
-        bubbles[dragging].vy = velY * 0.85;
-      }
-      dragging = null;
-      canvas.style.cursor = 'default';
-    }
-
-    canvas.addEventListener('mousedown', pointerDown);
-    canvas.addEventListener('mousemove', pointerMove);
-    canvas.addEventListener('mouseup',   pointerUp);
-    canvas.addEventListener('mouseleave', pointerUp);
-
-    canvas.addEventListener('touchstart', e => { e.preventDefault(); pointerDown(e); }, { passive: false });
-    canvas.addEventListener('touchmove',  e => { e.preventDefault(); pointerMove(e); }, { passive: false });
-    canvas.addEventListener('touchend',   e => { e.preventDefault(); pointerUp();    }, { passive: false });
 
     window.addEventListener('resize', resize);
-
     resize();
-    loop();
+    step();
   </script>
 
 </body>
