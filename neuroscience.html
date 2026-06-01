@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neuroscience</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background-color: #fafaf8;
+      color: #2c2c2c;
+      min-height: 100vh;
+    }
+
+    /* --- Menu --- */
+    .menu-btn {
+      position: fixed;
+      top: 22px;
+      left: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.4rem;
+      color: #111;
+      z-index: 1001;
+      line-height: 1;
+    }
+
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: #fafaf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .menu-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .menu-overlay nav ul {
+      list-style: none;
+      text-align: center;
+    }
+
+    .menu-overlay nav ul li {
+      margin: 24px 0;
+      opacity: 0;
+      transform: translateY(-12px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .menu-overlay.open nav ul li:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0.08s; }
+    .menu-overlay.open nav ul li:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.18s; }
+    .menu-overlay.open nav ul li:nth-child(3) { opacity: 1; transform: translateY(0); transition-delay: 0.28s; }
+
+    .menu-overlay nav ul li a {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #111;
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+
+    .menu-overlay nav ul li a:hover {
+      text-decoration: underline;
+    }
+
+    /* --- Page --- */
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 110px 24px 120px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 72px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    header h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #111;
+    }
+
+    header p.tagline {
+      margin-top: 12px;
+      font-size: 1rem;
+      color: #888;
+      font-style: italic;
+    }
+
+    .post {
+      margin-bottom: 64px;
+    }
+
+    .post h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 8px;
+    }
+
+    .post .meta {
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 20px;
+    }
+
+    .post a {
+      color: #111;
+      text-decoration: underline;
+    }
+
+    .post-image {
+      text-align: center;
+      margin: 32px 0;
+    }
+
+    .post-image img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .post p {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #444;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .page {
+        padding: 40px 16px 60px;
+      }
+
+      header {
+        margin-bottom: 40px;
+      }
+
+      header h1 {
+        font-size: 1.8rem;
+      }
+
+      .post h2 {
+        font-size: 1.3rem;
+      }
+
+      .post p {
+        font-size: 0.95rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button type="button" class="menu-btn" onclick="toggleMenu()" aria-label="Toggle menu">☰</button>
+
+  <div class="menu-overlay" id="menuOverlay">
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="decision-making.html">Decision Making</a></li>
+        <li><a href="neuroscience.html">Neuroscience</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="page">
+    <header>
+      <h1>Neuroscience</h1>
+      <p class="tagline"></p>
+    </header>
+
+    <article class="post">
+      <h2>Neural Dynamics</h2>
+    </article>
+  </div>
+
+  <script>
+    function toggleMenu() {
+      const overlay = document.getElementById('menuOverlay');
+      const btn = document.querySelector('.menu-btn');
+      const isOpen = overlay.classList.toggle('open');
+      btn.textContent = isOpen ? '✕' : '☰';
+    }
+  </script>
+
+</body>
+</html>

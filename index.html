@@ -1,27 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Home</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mouseionn</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: Georgia, 'Times New Roman', serif;
-      background-color: #fafaf8;
-      color: #111;
-      min-height: 100vh;
+      background-color: #111;
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      flex-direction: column;
     }
 
-    /* --- Menu --- */
     .menu-btn {
       position: fixed;
       top: 22px;
@@ -30,7 +25,7 @@
       border: none;
       cursor: pointer;
       font-size: 1.4rem;
-      color: #111;
+      color: #fff;
       z-index: 1001;
       line-height: 1;
     }
@@ -38,7 +33,7 @@
     .menu-overlay {
       position: fixed;
       inset: 0;
-      background: #fafaf8;
+      background: #111;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -67,11 +62,12 @@
 
     .menu-overlay.open nav ul li:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0.08s; }
     .menu-overlay.open nav ul li:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.18s; }
+    .menu-overlay.open nav ul li:nth-child(3) { opacity: 1; transform: translateY(0); transition-delay: 0.28s; }
 
     .menu-overlay nav ul li a {
       font-size: 1.8rem;
       font-weight: 700;
-      color: #111;
+      color: #fff;
       text-decoration: none;
       letter-spacing: -0.5px;
     }
@@ -80,29 +76,24 @@
       text-decoration: underline;
     }
 
-    /* --- Hero --- */
     .hero {
       text-align: center;
+      padding: 88px 24px 28px;
+      flex-shrink: 0;
     }
 
     .hero h1 {
-      font-size: 3rem;
+      font-size: 2.5rem;
       font-weight: 700;
       letter-spacing: -1px;
-      color: #111;
+      color: #fff;
     }
 
-    .hero p {
-      margin-top: 16px;
-      font-size: 1rem;
-      color: #888;
-      font-style: italic;
-    }
-
-    @media (max-width: 600px) {
-      .hero h1 {
-        font-size: 2rem;
-      }
+    canvas {
+      display: block;
+      flex: 1;
+      width: 100%;
+      cursor: default;
     }
   </style>
 </head>
@@ -115,14 +106,16 @@
       <ul>
         <li><a href="index.html">Home</a></li>
         <li><a href="decision-making.html">Decision Making</a></li>
+        <li><a href="neuroscience.html">Neuroscience</a></li>
       </ul>
     </nav>
   </div>
 
-  <div class="hero">
+  <div class="hero" id="hero">
     <h1>mouseionn</h1>
-    <p></p>
   </div>
+
+  <canvas id="bubbleCanvas"></canvas>
 
   <script>
     function toggleMenu() {
@@ -131,6 +124,209 @@
       const isOpen = overlay.classList.toggle('open');
       btn.textContent = isOpen ? '✕' : '☰';
     }
+
+    // ── Bubble map ──────────────────────────────────────────────
+    const canvas = document.getElementById('bubbleCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const DAMPING = 0.93;
+    const LINK_OVERLAP = 10; // px overlap between linked bubbles
+
+    // r values reflect relative content weight; max is 110
+    const bubbles = [
+      { lines: ['Decision', 'Making'], url: 'decision-making.html', r: 85, x: 0, y: 0, vx: 0, vy: 0 },
+      { lines: ['Neuroscience'],       url: 'neuroscience.html',    r: 65, x: 0, y: 0, vx: 0, vy: 0 }
+    ];
+
+    const links = [[0, 1]]; // linked pairs keep a spring between them
+
+    let initialized = false;
+    let dragging = null;
+    let dragOffX = 0, dragOffY = 0;
+    let prevX = 0, prevY = 0;
+    let velX = 0, velY = 0;
+    let dragMoved = false;
+
+    function initPositions() {
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const gap = bubbles[0].r + bubbles[1].r - LINK_OVERLAP;
+      bubbles[0].x = cx - gap / 2;
+      bubbles[0].y = cy;
+      bubbles[1].x = cx + gap / 2;
+      bubbles[1].y = cy;
+    }
+
+    function resize() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      if (!initialized) {
+        initPositions();
+        initialized = true;
+      }
+    }
+
+    function update() {
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // Spring forces on linked pairs
+      for (const [i, j] of links) {
+        const a = bubbles[i];
+        const b = bubbles[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const rest = a.r + b.r - LINK_OVERLAP;
+        const diff = dist - rest;
+        const f = diff * 0.045;
+        const nx = dx / dist;
+        const ny = dy / dist;
+        if (dragging !== i) { a.vx += nx * f; a.vy += ny * f; }
+        if (dragging !== j) { b.vx -= nx * f; b.vy -= ny * f; }
+      }
+
+      // Repulsion for unlinked pairs
+      for (let i = 0; i < bubbles.length; i++) {
+        for (let j = i + 1; j < bubbles.length; j++) {
+          const linked = links.some(([a, b]) => (a === i && b === j) || (a === j && b === i));
+          if (linked) continue;
+          const a = bubbles[i], b = bubbles[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          const minD = a.r + b.r + 24;
+          if (dist < minD) {
+            const push = (minD - dist) * 0.04;
+            const nx = dx / dist;
+            const ny = dy / dist;
+            if (dragging !== i) { a.vx -= nx * push; a.vy -= ny * push; }
+            if (dragging !== j) { b.vx += nx * push; b.vy += ny * push; }
+          }
+        }
+      }
+
+      // Integrate
+      for (let i = 0; i < bubbles.length; i++) {
+        if (dragging === i) continue;
+        const b = bubbles[i];
+        // Gentle center pull
+        b.vx += (W / 2 - b.x) * 0.001;
+        b.vy += (H / 2 - b.y) * 0.001;
+        // Damp
+        b.vx *= DAMPING;
+        b.vy *= DAMPING;
+        // Move
+        b.x += b.vx;
+        b.y += b.vy;
+        // Boundary bounce
+        if (b.x < b.r)     { b.x = b.r;     b.vx =  Math.abs(b.vx) * 0.4; }
+        if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * 0.4; }
+        if (b.y < b.r)     { b.y = b.r;     b.vy =  Math.abs(b.vy) * 0.4; }
+        if (b.y > H - b.r) { b.y = H - b.r; b.vy = -Math.abs(b.vy) * 0.4; }
+      }
+    }
+
+    function drawBubble(b) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(210, 210, 210, 0.28)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      const fontSize = Math.max(11, Math.round(b.r * 0.19));
+      ctx.font = `${fontSize}px Georgia, serif`;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const lineH = fontSize * 1.35;
+      const startY = b.y - ((b.lines.length - 1) * lineH) / 2;
+      for (let i = 0; i < b.lines.length; i++) {
+        ctx.fillText(b.lines[i], b.x, startY + i * lineH);
+      }
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      bubbles.forEach(drawBubble);
+    }
+
+    function loop() { update(); draw(); requestAnimationFrame(loop); }
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const src = e.touches ? e.touches[0] : e;
+      return {
+        x: (src.clientX - rect.left) * (canvas.width / rect.width),
+        y: (src.clientY - rect.top)  * (canvas.height / rect.height)
+      };
+    }
+
+    function hitTest(x, y) {
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        const b = bubbles[i];
+        if ((x - b.x) ** 2 + (y - b.y) ** 2 <= b.r ** 2) return i;
+      }
+      return -1;
+    }
+
+    function pointerDown(e) {
+      const p = getPos(e);
+      const i = hitTest(p.x, p.y);
+      if (i < 0) return;
+      dragging = i;
+      dragOffX = bubbles[i].x - p.x;
+      dragOffY = bubbles[i].y - p.y;
+      prevX = p.x; prevY = p.y;
+      velX = 0; velY = 0;
+      dragMoved = false;
+      canvas.style.cursor = 'grabbing';
+    }
+
+    function pointerMove(e) {
+      const p = getPos(e);
+      if (dragging === null) {
+        canvas.style.cursor = hitTest(p.x, p.y) >= 0 ? 'pointer' : 'default';
+        return;
+      }
+      velX = p.x - prevX;
+      velY = p.y - prevY;
+      prevX = p.x; prevY = p.y;
+      bubbles[dragging].x = p.x + dragOffX;
+      bubbles[dragging].y = p.y + dragOffY;
+      if (Math.abs(velX) + Math.abs(velY) > 2) dragMoved = true;
+    }
+
+    function pointerUp() {
+      if (dragging === null) return;
+      if (!dragMoved) {
+        window.location.href = bubbles[dragging].url;
+      } else {
+        bubbles[dragging].vx = velX * 0.85;
+        bubbles[dragging].vy = velY * 0.85;
+      }
+      dragging = null;
+      canvas.style.cursor = 'default';
+    }
+
+    canvas.addEventListener('mousedown', pointerDown);
+    canvas.addEventListener('mousemove', pointerMove);
+    canvas.addEventListener('mouseup',   pointerUp);
+    canvas.addEventListener('mouseleave', pointerUp);
+
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); pointerDown(e); }, { passive: false });
+    canvas.addEventListener('touchmove',  e => { e.preventDefault(); pointerMove(e); }, { passive: false });
+    canvas.addEventListener('touchend',   e => { e.preventDefault(); pointerUp();    }, { passive: false });
+
+    window.addEventListener('resize', resize);
+
+    resize();
+    loop();
   </script>
 
 </body>
