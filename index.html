@@ -13,17 +13,15 @@
       color: #fff;
       height: 100vh;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
     }
 
     .topbar {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 56px;
+      height: 64px;
       display: flex;
       align-items: center;
-      padding: 0 24px;
+      padding: 0 28px;
       z-index: 1001;
     }
 
@@ -31,7 +29,7 @@
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 1.4rem;
+      font-size: 1.6rem;
       color: #fff;
       line-height: 1;
       transition: opacity 0.25s ease;
@@ -76,23 +74,32 @@
 
     .menu-overlay nav ul li a:hover { text-decoration: underline; }
 
-    .hero {
-      text-align: center;
-      padding: 96px 24px 12px;
-      flex-shrink: 0;
-    }
-
-    .hero h1 {
-      font-size: 2.5rem;
+    .topbar-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.55rem;
       font-weight: 700;
-      letter-spacing: -1px;
+      letter-spacing: -0.5px;
+      color: #fff;
+      pointer-events: none;
+      white-space: nowrap;
     }
 
     canvas {
-      display: block;
-      flex: 1;
-      width: 100%;
+      position: fixed;
+      top: 64px;
+      left: 0;
+      right: 0;
+      bottom: 0;
       cursor: default;
+    }
+
+    @media (max-width: 600px) {
+      .topbar { height: 56px; padding: 0 20px; }
+      .menu-btn { font-size: 1.4rem; }
+      .topbar-title { font-size: 1.25rem; }
+      canvas { top: 56px; }
     }
   </style>
 </head>
@@ -100,6 +107,7 @@
 
   <nav class="topbar" aria-label="Site navigation">
     <button type="button" class="menu-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Toggle menu">☰</button>
+    <span class="topbar-title">mouseionn</span>
   </nav>
 
   <div class="menu-overlay" id="menuOverlay">
@@ -111,10 +119,6 @@
         <li><a href="projects.html">Projects</a></li>
       </ul>
     </nav>
-  </div>
-
-  <div class="hero">
-    <h1>mouseionn</h1>
   </div>
 
   <canvas id="globe"></canvas>
@@ -155,6 +159,9 @@
     const AUTO = 0.0025;
     const DECAY = 0.91;
 
+    // Active (pressed) node
+    let activeNode = -1;
+
     // ── Geometry helpers ──
     function cart(phi, theta) {
       return {
@@ -185,7 +192,7 @@
     }
 
     // ── Drawing ──
-    function drawRecBox(sx, sy, lines, fontSize, alpha) {
+    function drawRecBox(sx, sy, lines, fontSize, alpha, active) {
       ctx.font = `${fontSize}px Georgia, serif`;
       const lineH = fontSize * 1.35;
       const maxW = Math.max(...lines.map(l => ctx.measureText(l).width));
@@ -194,12 +201,12 @@
       const bh = lines.length * lineH + pad * 2;
       const bx = sx - bw / 2;
       const by = sy - bh / 2;
-      const cl = Math.min(9, bw * 0.28); // corner line length
+      const cl = Math.min(9, bw * 0.28);
 
-      ctx.strokeStyle = `rgba(255,255,255,${(alpha * 0.6).toFixed(2)})`;
-      ctx.lineWidth = 1;
+      const rgb = active ? '100,230,120' : '255,255,255';
+      ctx.strokeStyle = `rgba(${rgb},${(alpha * (active ? 1 : 0.6)).toFixed(2)})`;
+      ctx.lineWidth = active ? 1.5 : 1;
 
-      // Four corner brackets
       [
         [bx,      by,      1,  1 ],
         [bx + bw, by,     -1,  1 ],
@@ -213,8 +220,7 @@
         ctx.stroke();
       });
 
-      // Text
-      ctx.fillStyle = `rgba(255,255,255,${(alpha * 0.9).toFixed(2)})`;
+      ctx.fillStyle = `rgba(${rgb},${(alpha * 0.9).toFixed(2)})`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const startY = sy - ((lines.length - 1) * lineH) / 2;
@@ -263,7 +269,7 @@
             const labelAlpha = Math.min(1, (depth + 0.25) / 0.75) * nodeAlpha;
             const fontSize = Math.max(9, Math.round(11 * s));
             const labelY = sy + Math.max(16, 24 * s);
-            drawRecBox(sx, labelY, nodes[i].lines, fontSize, labelAlpha);
+            drawRecBox(sx, labelY, nodes[i].lines, fontSize, labelAlpha, i === activeNode);
           }
         });
     }
@@ -292,11 +298,15 @@
       return [e.clientX, e.clientY];
     }
 
-    function hitNode(mx, my) {
+    // clientX/Y → canvas-local coords, then hit test
+    function hitNode(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const mx = clientX - rect.left;
+      const my = clientY - rect.top;
       const projected = getProjected();
       for (let i = projected.length - 1; i >= 0; i--) {
         const { sx, sy, depth } = projected[i];
-        if (depth > -0.5 && Math.hypot(mx - sx, my - sy) < 26) return i;
+        if (depth > -0.5 && Math.hypot(mx - sx, my - sy) < 30) return i;
       }
       return -1;
     }
@@ -306,6 +316,8 @@
       [dragStartX, dragStartY] = [prevMX, prevMY];
       isDragging = true;
       momX = 0; momY = 0;
+      const i = hitNode(prevMX, prevMY);
+      activeNode = i;
     }
 
     function onMove(e) {
@@ -315,6 +327,7 @@
         return;
       }
       const [mx, my] = clientXY(e);
+      if (Math.hypot(mx - dragStartX, my - dragStartY) > 6) activeNode = -1;
       const dx = (mx - prevMX) * 0.007;
       const dy = (my - prevMY) * 0.007;
       rotY += dx; rotX += dy;
@@ -327,10 +340,11 @@
       if (!isDragging) return;
       isDragging = false;
       const [ux, uy] = releaseXY(e);
-      if (Math.hypot(ux - dragStartX, uy - dragStartY) < 6) {
-        const rect = canvas.getBoundingClientRect();
-        const i = hitNode(ux - rect.left + rect.left, uy); // canvas is full-width so no offset needed
-        if (i >= 0) window.location.href = nodes[i].url;
+      if (Math.hypot(ux - dragStartX, uy - dragStartY) < 6 && activeNode >= 0) {
+        const target = nodes[activeNode].url;
+        setTimeout(() => { window.location.href = target; }, 220);
+      } else {
+        activeNode = -1;
       }
     }
 
@@ -344,14 +358,17 @@
     canvas.addEventListener('touchend',   e => { e.preventDefault(); onUp(e);   }, { passive: false });
 
     // ── Resize ──
+    const NAV_H = window.innerWidth <= 600 ? 56 : 64;
+
     function resize() {
       const dpr = window.devicePixelRatio || 1;
-      logW = canvas.offsetWidth;
-      logH = canvas.offsetHeight;
-      canvas.width = Math.round(logW * dpr);
+      const navH = window.innerWidth <= 600 ? 56 : 64;
+      logW = window.innerWidth;
+      logH = window.innerHeight - navH;
+      canvas.width  = Math.round(logW * dpr);
       canvas.height = Math.round(logH * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      R = Math.min(logW, logH) * 0.28;
+      R = Math.min(Math.min(logW, logH) * 0.32, 260);
     }
 
     window.addEventListener('resize', resize);
