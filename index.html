@@ -92,6 +92,8 @@
       left: 0;
       right: 0;
       bottom: 0;
+      width: 100%;
+      height: calc(100% - 64px);
       cursor: default;
     }
 
@@ -99,7 +101,7 @@
       .topbar { height: 56px; padding: 0 20px; }
       .menu-btn { font-size: 1.4rem; }
       .topbar-title { font-size: 1.25rem; }
-      canvas { top: 56px; }
+      canvas { top: 56px; height: calc(100% - 56px); }
     }
   </style>
 </head>
@@ -358,17 +360,16 @@
     canvas.addEventListener('touchend',   e => { e.preventDefault(); onUp(e);   }, { passive: false });
 
     // ── Resize ──
-    const NAV_H = window.innerWidth <= 600 ? 56 : 64;
-
     function resize() {
       const dpr = window.devicePixelRatio || 1;
-      const navH = window.innerWidth <= 600 ? 56 : 64;
-      logW = window.innerWidth;
-      logH = window.innerHeight - navH;
+      // clientWidth/Height reads the actual rendered CSS size of the fixed canvas
+      logW = canvas.clientWidth  || window.innerWidth;
+      logH = canvas.clientHeight || (window.innerHeight - 64);
       canvas.width  = Math.round(logW * dpr);
       canvas.height = Math.round(logH * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      R = Math.min(Math.min(logW, logH) * 0.32, 260);
+      const mobile = logW <= 600;
+      R = Math.min(Math.min(logW, logH) * (mobile ? 0.2 : 0.3), 240);
     }
 
     window.addEventListener('resize', resize);
