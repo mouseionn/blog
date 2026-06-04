@@ -13,8 +13,8 @@
 
     body {
       font-family: Georgia, 'Times New Roman', serif;
-      background-color: #fafaf8;
-      color: #2c2c2c;
+      background-color: #111;
+      color: #d0d0d0;
       min-height: 100vh;
     }
 
@@ -29,6 +29,29 @@
       align-items: center;
       padding: 0 24px;
       z-index: 1001;
+      background: #1c1c1c;
+      transition: background 0.3s ease, backdrop-filter 0.3s ease;
+    }
+
+    .topbar.scrolled {
+      background: rgba(28, 28, 28, 0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .topbar-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #f0f0f0;
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60%;
     }
 
     .menu-btn {
@@ -36,7 +59,7 @@
       border: none;
       cursor: pointer;
       font-size: 1.4rem;
-      color: #111;
+      color: #fff;
       line-height: 1;
       transition: opacity 0.25s ease;
     }
@@ -44,7 +67,7 @@
     .menu-overlay {
       position: fixed;
       inset: 0;
-      background: #fafaf8;
+      background: #111;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -79,7 +102,7 @@
     .menu-overlay nav ul li a {
       font-size: 1.8rem;
       font-weight: 700;
-      color: #111;
+      color: #f0f0f0;
       text-decoration: none;
       letter-spacing: -0.5px;
     }
@@ -99,20 +122,20 @@
       text-align: center;
       margin-bottom: 72px;
       padding-bottom: 40px;
-      border-bottom: 1px solid #e0e0e0;
+      border-bottom: 1px solid #252525;
     }
 
     header h1 {
       font-size: 2.8rem;
       font-weight: 700;
       letter-spacing: -0.5px;
-      color: #111;
+      color: #f0f0f0;
     }
 
     header p.tagline {
       margin-top: 12px;
       font-size: 1rem;
-      color: #888;
+      color: #666;
       font-style: italic;
     }
 
@@ -123,18 +146,18 @@
     .post h2 {
       font-size: 1.6rem;
       font-weight: 700;
-      color: #111;
+      color: #f0f0f0;
       margin-bottom: 8px;
     }
 
     .post .meta {
       font-size: 0.85rem;
-      color: #aaa;
+      color: #777;
       margin-bottom: 20px;
     }
 
     .post a {
-      color: #111;
+      color: #d0d0d0;
       text-decoration: underline;
     }
 
@@ -151,7 +174,7 @@
     .post p {
       font-size: 1.05rem;
       line-height: 1.8;
-      color: #444;
+      color: #c0c0c0;
       margin-top: 20px;
     }
 
@@ -182,6 +205,7 @@
 
   <nav class="topbar" aria-label="Site navigation">
     <button type="button" class="menu-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Toggle menu">☰</button>
+    <span class="topbar-title">Decision Making</span>
   </nav>
 
   <div class="menu-overlay" id="menuOverlay">
@@ -196,13 +220,8 @@
   </div>
 
   <div class="page">
-    <header>
-      <h1>Decision Making and Path Integral Formulation</h1>
-      <p class="tagline"></p>
-    </header>
-
     <article class="post">
-      <h2>Decision Making</h2>
+      <h2>Decisions</h2>
       <p class="meta">May 29, 2026</p>
       <p>
         It is commonly assumed that humans are largely and naturally unpredictable. Believing so is no different from believing that man is naturally evil, selfish, good, etc.
@@ -213,8 +232,14 @@
         <a href="https://en.wikipedia.org/wiki/Rational_choice_theory" target="_blank">Rational Choice Theory</a>, <a href="https://en.wikipedia.org/wiki/Chaos_theory" target="_blank">Chaos Theory</a> and the like. All of which are no doubt important and effective ways of understanding human decision making processes. However, they are
         insufficient in testing whether you can accurately predict an individual's next move.</p>
         <p></p>
+        <p>The bigger question here, when it comes to decision making, seems to be "What more can be learned?" I believe there is a lack in understanding what happens between two important points in time. 
+          Those points are pre-decision and post-decision. The time between these points can be minute, but that time is just as important and significant as the hour-long gaps
+          between other decisions. Social scientists seem to lack a method of observing what happens during these time interals, or perhaps they have not been introduced to methods deployed by neuroscientists.
+          An approach I think would enrich any effort to understand, is the Path Integral Formulation Theory.
+          <p></p>
+        </p>
 
-      <h2>Path Integral Formulation</h2>
+      <h2>Path Integral Formulation Theory</h2>
 
       <figure class="post-image">
         <img src="images/Feynman_paths.png" alt="Feynman path integral diagram">
@@ -242,10 +267,7 @@
         </p>
 
         <p>
-          Literature that explore this is widely available, many of which are in-line with my view of the nature of decision making.
-          Peter Solazzo's <a href="https://arxiv.org/abs/1811.12496" target="_blank">"A Theory of Decision Making Based on Feynman's Path Integral Formulation of Quantum Mechanics"</a>, not only explores but
-          also corrects previous presumptions about the quantum behavior of decision making made in <a href="https://arxiv.org/abs/1710.07613" target="_blank">"Quantum field inspired model of decision making: Asymptotic
-          stabilization of belief state via interaction with surrounding mental environment"</a>, by Bagarello, Basieva, and Khrennikov.
+          
         </p>
 
     </article>
@@ -263,15 +285,20 @@
 
     let lastScrollY = 0;
     window.addEventListener('scroll', () => {
-      if (menuOpen) return;
+      const nav = document.querySelector('.topbar');
       const btn = document.getElementById('menuBtn');
       const y = window.scrollY;
-      if (y > lastScrollY && y > 40) {
-        btn.style.opacity = '0';
-        btn.style.pointerEvents = 'none';
-      } else {
-        btn.style.opacity = '1';
-        btn.style.pointerEvents = 'auto';
+
+      nav.classList.toggle('scrolled', y > 20);
+
+      if (!menuOpen) {
+        if (y > lastScrollY && y > 40) {
+          btn.style.opacity = '0';
+          btn.style.pointerEvents = 'none';
+        } else {
+          btn.style.opacity = '1';
+          btn.style.pointerEvents = 'auto';
+        }
       }
       lastScrollY = y;
     });

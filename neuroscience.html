@@ -13,8 +13,8 @@
 
     body {
       font-family: Georgia, 'Times New Roman', serif;
-      background-color: #fafaf8;
-      color: #2c2c2c;
+      background-color: #111;
+      color: #d0d0d0;
       min-height: 100vh;
     }
 
@@ -29,6 +29,29 @@
       align-items: center;
       padding: 0 24px;
       z-index: 1001;
+      background: #1c1c1c;
+      transition: background 0.3s ease, backdrop-filter 0.3s ease;
+    }
+
+    .topbar.scrolled {
+      background: rgba(28, 28, 28, 0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .topbar-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #f0f0f0;
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60%;
     }
 
     .menu-btn {
@@ -36,7 +59,7 @@
       border: none;
       cursor: pointer;
       font-size: 1.4rem;
-      color: #111;
+      color: #fff;
       line-height: 1;
       transition: opacity 0.25s ease;
     }
@@ -44,7 +67,7 @@
     .menu-overlay {
       position: fixed;
       inset: 0;
-      background: #fafaf8;
+      background: #111;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -79,7 +102,7 @@
     .menu-overlay nav ul li a {
       font-size: 1.8rem;
       font-weight: 700;
-      color: #111;
+      color: #f0f0f0;
       text-decoration: none;
       letter-spacing: -0.5px;
     }
@@ -99,20 +122,20 @@
       text-align: center;
       margin-bottom: 72px;
       padding-bottom: 40px;
-      border-bottom: 1px solid #e0e0e0;
+      border-bottom: 1px solid #252525;
     }
 
     header h1 {
       font-size: 2.8rem;
       font-weight: 700;
       letter-spacing: -0.5px;
-      color: #111;
+      color: #f0f0f0;
     }
 
     header p.tagline {
       margin-top: 12px;
       font-size: 1rem;
-      color: #888;
+      color: #666;
       font-style: italic;
     }
 
@@ -123,35 +146,39 @@
     .post h2 {
       font-size: 1.6rem;
       font-weight: 700;
-      color: #111;
+      color: #f0f0f0;
       margin-bottom: 8px;
     }
 
     .post .meta {
       font-size: 0.85rem;
-      color: #aaa;
+      color: #777;
       margin-bottom: 20px;
     }
 
     .post a {
-      color: #111;
+      color: #d0d0d0;
       text-decoration: underline;
     }
 
     .post-image {
       text-align: center;
-      margin: 32px 0;
+      margin: 40px 0;
     }
 
     .post-image img {
-      max-width: 100%;
+      max-width: 420px;
+      width: 80%;
       height: auto;
+      border-radius: 4px;
+      mix-blend-mode: screen;
+      filter: brightness(1.5) contrast(1.5);
     }
 
     .post p {
       font-size: 1.05rem;
       line-height: 1.8;
-      color: #444;
+      color: #c0c0c0;
       margin-top: 20px;
     }
 
@@ -182,6 +209,7 @@
 
   <nav class="topbar" aria-label="Site navigation">
     <button type="button" class="menu-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Toggle menu">☰</button>
+    <span class="topbar-title">Neuroscience</span>
   </nav>
 
   <div class="menu-overlay" id="menuOverlay">
@@ -196,13 +224,18 @@
   </div>
 
   <div class="page">
-    <header>
-      <h1>Neuroscience</h1>
-      <p class="tagline"></p>
-    </header>
+    <figure class="post-image">
+      <img src="images/brain-scan-on-a-black-background.jpg" alt="Brain scan">
+    </figure>
 
     <article class="post">
-      <h2>Neural Dynamics</h2>
+      <p class="meta">June 4, 2026</p>
+      <p>
+        I am no expert in the field of neuroscience, nor do I hold any degrees in the subject. I have taken a masters level course
+        in Computational Neuroscience, where I learned the structural and behavioral components of neurons and neural masses. So this section will serve
+        as a place for me to preserve that knowledge, anything I may learn in the future, and hopefully where I will present a
+        connection between it and decision making and machine learning.
+      </p>
     </article>
   </div>
 
@@ -218,15 +251,20 @@
 
     let lastScrollY = 0;
     window.addEventListener('scroll', () => {
-      if (menuOpen) return;
+      const nav = document.querySelector('.topbar');
       const btn = document.getElementById('menuBtn');
       const y = window.scrollY;
-      if (y > lastScrollY && y > 40) {
-        btn.style.opacity = '0';
-        btn.style.pointerEvents = 'none';
-      } else {
-        btn.style.opacity = '1';
-        btn.style.pointerEvents = 'auto';
+
+      nav.classList.toggle('scrolled', y > 20);
+
+      if (!menuOpen) {
+        if (y > lastScrollY && y > 40) {
+          btn.style.opacity = '0';
+          btn.style.pointerEvents = 'none';
+        } else {
+          btn.style.opacity = '1';
+          btn.style.pointerEvents = 'auto';
+        }
       }
       lastScrollY = y;
     });
